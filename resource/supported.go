@@ -5,6 +5,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/lambda"
+
+	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
+
 	"github.com/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -58,6 +62,7 @@ const (
 	KeyPair             TerraformResourceType = "aws_key_pair"
 	KmsAlias            TerraformResourceType = "aws_kms_alias"
 	KmsKey              TerraformResourceType = "aws_kms_key"
+	LambdaFunction      TerraformResourceType = "aws_lambda_function"
 	LaunchConfiguration TerraformResourceType = "aws_launch_configuration"
 	NatGateway          TerraformResourceType = "aws_nat_gateway"
 	NetworkACL          TerraformResourceType = "aws_network_acl"
@@ -93,6 +98,7 @@ var (
 		KeyPair:             "KeyName",
 		KmsAlias:            "AliasName",
 		KmsKey:              "KeyId",
+		LambdaFunction:      "FunctionName",
 		LaunchConfiguration: "LaunchConfigurationName",
 		NatGateway:          "NatGatewayId",
 		NetworkACL:          "NetworkAclId",
@@ -111,6 +117,7 @@ var (
 	// since dependent resources need to be deleted before their dependencies
 	// (e.g. aws_subnet before aws_vpc)
 	DependencyOrder = map[TerraformResourceType]int{
+		LambdaFunction:      10100,
 		EcsCluster:          10000,
 		AutoscalingGroup:    9990,
 		Instance:            9980,
@@ -185,6 +192,7 @@ type AWS struct {
 	efsiface.EFSAPI
 	iamiface.IAMAPI
 	kmsiface.KMSAPI
+	lambdaiface.LambdaAPI
 	s3iface.S3API
 	stsiface.STSAPI
 }
@@ -205,6 +213,7 @@ func NewAWS(s *session.Session) *AWS {
 		ELBAPI:            elb.New(s),
 		IAMAPI:            iam.New(s),
 		KMSAPI:            kms.New(s),
+		LambdaAPI:         lambda.New(s),
 		Route53API:        route53.New(s),
 		RDSAPI:            rds.New(s),
 		S3API:             s3.New(s),
@@ -267,6 +276,8 @@ func (a *AWS) RawResources(resType TerraformResourceType) (interface{}, error) {
 		return a.KmsAliases()
 	case KmsKey:
 		return a.KmsKeys()
+	case LambdaFunction:
+		return a.lambdaFunctions()
 	case LaunchConfiguration:
 		return a.launchConfigurations()
 	case NatGateway:
@@ -542,7 +553,7 @@ func (a *AWS) iamInstanceProfiles() (interface{}, error) {
 }
 
 func (a *AWS) KmsAliases() (interface{}, error) {
-	output, err := a.ListAliases(&kms.ListAliasesInput{})
+	output, err := a.KMSAPI.ListAliases(&kms.ListAliasesInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -629,6 +640,14 @@ func (a *AWS) autoscalingGroups() (interface{}, error) {
 		return nil, err
 	}
 	return output.AutoScalingGroups, nil
+}
+
+func (a *AWS) lambdaFunctions() (interface{}, error) {
+	output, err := a.ListFunctions(&lambda.ListFunctionsInput{})
+	if err != nil {
+		return nil, err
+	}
+	return output.Functions, nil
 }
 
 func (a *AWS) launchConfigurations() (interface{}, error) {

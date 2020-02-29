@@ -10,26 +10,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/ecs"
-
-	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
-
-	"github.com/aws/aws-sdk-go/service/rds"
-	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
-
-	"github.com/gruntwork-io/terratest/modules/random"
-
-	"github.com/gruntwork-io/terratest/modules/terraform"
-	"github.com/onsi/gomega/gexec"
-	"github.com/stretchr/testify/require"
+	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/efs/efsiface"
 	"github.com/aws/aws-sdk-go/service/elb"
@@ -38,17 +32,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/kms/kmsiface"
+	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/route53/route53iface"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	res "github.com/cloudetc/awsweeper/resource"
+	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/onsi/gomega/gexec"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -72,6 +69,7 @@ type AWS struct {
 	elbiface.ELBAPI
 	iamiface.IAMAPI
 	kmsiface.KMSAPI
+	lambdaiface.LambdaAPI
 	rdsiface.RDSAPI
 	route53iface.Route53API
 	s3iface.S3API
@@ -88,6 +86,7 @@ func NewAWS(s *session.Session) AWS {
 		ELBAPI:            elb.New(s),
 		IAMAPI:            iam.New(s),
 		KMSAPI:            kms.New(s),
+		LambdaAPI:         lambda.New(s),
 		RDSAPI:            rds.New(s),
 		Route53API:        route53.New(s),
 		S3API:             s3.New(s),

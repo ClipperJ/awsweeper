@@ -178,6 +178,7 @@ AWSweeper can currently delete many but not [all of the existing types of AWS re
 - aws_key_pair
 - aws_kms_alias
 - aws_kms_key
+- aws_lambda_function
 - aws_launch_configuration
 - aws_nat_gateway
 - aws_network_acl
